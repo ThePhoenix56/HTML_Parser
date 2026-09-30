@@ -61,19 +61,25 @@ export class HtmlElement {
 
     /**
      * Gets all text from this element and all its children.
-     * Follows Clean Code: Does one thing and hides the tree details.
      * @returns {string}
      */
     getTextContent() {
-        let combinedText = this.textContent
+        const parts = []
 
-        // Loop through all children and collect their text
-        for (const child of this.children) {
-            combinedText += child.getTextContent()
+        if (this.textContent) {
+            parts.push(this.textContent)
         }
 
-        return combinedText.trim()
+        for (const child of this.children) {
+            const childText = child.getTextContent()
+            if (childText.length > 0) {
+                parts.push(childText)
+            }
+        }
+
+        return parts.join(' ').trim()
     }
+
 
     /**
      * Finds an element with a specific ID.
