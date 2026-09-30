@@ -24,3 +24,7 @@ All tests were ran with the "**npm test**" command.
 | `HtmlDocument.getElementsByClassName(className)` | Automated unit test: parsed elements with single and multiple classes (`class="highlight bold"`) and verified matching elements were found. | ✅ Passed |
 | `HtmlDocument.getTextContent()` across entire document | Automated unit test: parsed a document with multiple nested tags and verified that combined text is concatenated with clean spacing. | ✅ Passed |
 |  Handling empty or invalid input in `HtmlParser.parse()` | Automated unit test: called `parse('')` with an empty string and verified that `root` is `null` and search methods return safe defaults (`null` or `[]`) without crashing. | ✅ Passed |
+
+**Tests: 9**
+**Tests successful: 9**
+**Tests failed: 0**
