@@ -4,7 +4,8 @@
   "description": "Det här är ditt privata GitLab-repo för kursens andra laborationsuppgift.",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
