@@ -1,7 +1,7 @@
 {
   "name": "html_parser",
   "version": "1.0.0",
-  "description": "Det här är ditt privata GitLab-repo för kursens andra laborationsuppgift.",
+  "description": "HTML_Parser JS module",
   "main": "./src/index.js",
   "scripts": {
     "start": "node src/index.js",

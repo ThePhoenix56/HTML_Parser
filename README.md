@@ -5,7 +5,7 @@ A basic HTML parser JavaScript module that parses and returns tags, text and chi
 ## What is this module for?
 
 This module is mainly meant for reading data out of static HTML.
-Some typical uses cases:
+Some typical use cases:
 
 - Scraping static web pages.
 - Pulling links, headings or other elements out of an HTML file.
@@ -18,25 +18,21 @@ As this is a module, it needs further development in order to be used.
 - Turns an HTML string into a tree of `HtmlElement` objects. This consists of tag name, attributes, text, children and parents.
 - Searches the `HtmlElement` tree with familiar DOM-like methods such as:
   - `getElementById(id)`
-  - `getElementByTagName(tagName)`
+  - `getElementsByTagName(tagName)`
   - `getElementsByClassName(className)`
   - `getTextContent()`
- - Handles void tags such as `img`, `br`, `input`, `meta`, `link`, etc.
- - Reads attributes with `getAttribute(name` and `hasAttribute(name`.
+ - Handles void tags such as `img`, `br`, `input`, `meta`, `link` and `hr`.
+ - Reads attributes with `getAttribute(name)` and `hasAttribute(name)`.
  - Can read attributes that are double quoted ("), single-quoted ('), unquoted as well as attributes without a value (such as `disabled`).
  - Does not throw an error on bad input (such as a bad HTML file), it instead returns an empty or partial result if given an empty, non-string or broken HTML file.
  - Does not use any external dependencies and is shipped as an ES module, built only with JavaScript.
 
 ## What this module does not do
 
-- This module does not fetch web pages. It only parses a string or HTML file that is given to it.
+- This module does not fetch web pages. It only parses a string that is given to it.
 - It does not apply CSS or run JS. It only parses HTML sources that are directly fed to it, meaning that any frontend HTML source fed to it that is applied through JS for example is not registered in the module and will therefore not be parsed.
 - It does not support CSS selectors such as `querySelector` and `querySelectorAll`.
-- It does not decode HTML entities - for example, `&amp` stays as `&amp` in plain text.
-
-## Does it work out of the box?
-
-No. You have to incorporate this module into your own app.
+- It does not decode HTML entities - for example, `&amp;` stays as `&amp;` in plain text.
 
 ## Installation and further development
 
