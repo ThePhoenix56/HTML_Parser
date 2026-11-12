@@ -14,52 +14,88 @@ export class HtmlParser {
      * @returns {HtmlDocument}
      */
     parse(html) {
-        // Return an empty document if input is empty or not a string
-        if (!html || typeof html !== 'string') {
+        if (!this.#isValidInput(html)) {
             return new HtmlDocument(null)
         }
 
-        // An invisible root element that holds all top tags
+        const root = this.#buildTree(html)
+        return new HtmlDocument(this.#choosePrimaryElement(root))
+    }
+
+    /**
+     * Checks that the input is a non-empty string.
+     * @param {*} html
+     * @returns {boolean}
+     */
+    #isValidInput(html) {
+        return typeof html === 'string' && html.length > 0
+    }
+
+    /**
+     * Reads the whole HTML string and builds a tree under an invisible root element.
+     * @param {string} html
+     * @returns {HtmlElement} The invisible root element.
+     */
+    #buildTree(html) {
         const root = new HtmlElement('root')
 
-        // Stack to keep track of which parent tag we are currently inside
+        // Stack to keep track of which parent tag we are currently inside.
         // The top item is always the current parent.
         const stack = [root]
 
         let cursor = 0
-
-        // Main loop: go through the whole HTML string
         while (cursor < html.length) {
-            if (html[cursor] === '<') {
-                const tagEndIndex = html.indexOf('>', cursor)
-
-                if (tagEndIndex === -1) {
-                    break
-                }
-
-                const rawTagContent = html.slice(cursor + 1, tagEndIndex).trim()
-
-                this.#processTag(rawTagContent, stack)
-
-                cursor = tagEndIndex + 1
-            } else {
-                const nextTagIndex = html.indexOf('<', cursor)
-
-                let text = ''
-                if (nextTagIndex === -1) {
-                    text = html.slice(cursor)
-                    cursor = html.length
-                } else {
-                    text = html.slice(cursor, nextTagIndex)
-                    cursor = nextTagIndex
-                }
-
-                this.#processText(text, stack)
-            }
+            cursor = html[cursor] === '<'
+                ? this.#readTag(html, cursor, stack)
+                : this.#readText(html, cursor, stack)
         }
 
-        const primaryElement = root.children.length === 1 ? root.children[0] : root
-        return new HtmlDocument(primaryElement)
+        return root
+    }
+
+    /**
+     * Reads one tag starting at the cursor and processes it.
+     * @param {string} html
+     * @param {number} cursor - Index of the "<" character.
+     * @param {HtmlElement[]} stack
+     * @returns {number} The cursor position after the tag.
+     */
+    #readTag(html, cursor, stack) {
+        const tagEndIndex = html.indexOf('>', cursor)
+
+        if (tagEndIndex === -1) {
+            return html.length
+        }
+
+        const rawTagContent = html.slice(cursor + 1, tagEndIndex).trim()
+        this.#processTag(rawTagContent, stack)
+
+        return tagEndIndex + 1
+    }
+
+    /**
+     * Reads text from the cursor up to the next tag and processes it.
+     * @param {string} html
+     * @param {number} cursor
+     * @param {HtmlElement[]} stack
+     * @returns {number} The cursor position after the text.
+     */
+    #readText(html, cursor, stack) {
+        const nextTagIndex = html.indexOf('<', cursor)
+        const textEndIndex = nextTagIndex === -1 ? html.length : nextTagIndex
+
+        this.#processText(html.slice(cursor, textEndIndex), stack)
+
+        return textEndIndex
+    }
+
+    /**
+     * Returns the only top-level element if there is exactly one, otherwise the invisible root.
+     * @param {HtmlElement} root
+     * @returns {HtmlElement}
+     */
+    #choosePrimaryElement(root) {
+        return root.children.length === 1 ? root.children[0] : root
     }
 
     /**
@@ -98,43 +134,67 @@ export class HtmlParser {
      * @param {HtmlElement[]} stack 
      */
     #handleOpeningTag(rawTagContent, stack) {
-        // Check if the tag ends with "/" (for example <img src="example.jpg" />)
+        // A tag ending with "/" is self-closing (for example <img src="example.jpg" />)
         const isExplicitSelfClosing = rawTagContent.endsWith('/')
         const cleanTag = isExplicitSelfClosing ? rawTagContent.slice(0, -1).trim() : rawTagContent
 
-        // Get the tag name (everything before the first space)
-        const firstSpaceIndex = cleanTag.indexOf(' ')
-        let tagName = ''
-        let attributeString = ''
+        const { tagName, attributeString } = this.#splitTagNameAndAttributes(cleanTag)
+        const newElement = this.#createElement(tagName, attributeString)
 
-        if (firstSpaceIndex === -1) {
-            tagName = cleanTag
-        } else {
-            tagName = cleanTag.slice(0, firstSpaceIndex)
-            attributeString = cleanTag.slice(firstSpaceIndex + 1).trim()
-        }
+        stack[stack.length - 1].addChild(newElement)
 
-        // Create the new element
-        const newElement = new HtmlElement(tagName)
-
-        // Read attributes if there are any
-        if (attributeString.length > 0) {
-            this.#parseAttributes(attributeString, newElement)
-        }
-
-        // Add this new element as a child to the current parent
-        const currentParent = stack[stack.length - 1]
-        currentParent.addChild(newElement)
-
-        // Put it on the stack if it expects a closing tag
-        const isVoidTag = this.#voidTags.includes(newElement.tagName)
-        if (!isExplicitSelfClosing && !isVoidTag) {
+        if (this.#expectsClosingTag(newElement, isExplicitSelfClosing)) {
             stack.push(newElement)
         }
     }
 
     /**
-     * Reads attributes like `id="test" class="btn"` and saves them to the element.
+     * Splits tag content into the tag name and the attribute string.
+     * @param {string} cleanTag - for example "div id='main'"
+     * @returns {{ tagName: string, attributeString: string }}
+     */
+    #splitTagNameAndAttributes(cleanTag) {
+        const firstSpaceIndex = cleanTag.indexOf(' ')
+
+        if (firstSpaceIndex === -1) {
+            return { tagName: cleanTag, attributeString: '' }
+        }
+
+        return {
+            tagName: cleanTag.slice(0, firstSpaceIndex),
+            attributeString: cleanTag.slice(firstSpaceIndex + 1).trim()
+        }
+    }
+
+    /**
+     * Creates a new element and reads its attributes, if there are any.
+     * @param {string} tagName
+     * @param {string} attributeString
+     * @returns {HtmlElement}
+     */
+    #createElement(tagName, attributeString) {
+        const element = new HtmlElement(tagName)
+
+        if (attributeString.length > 0) {
+            this.#parseAttributes(attributeString, element)
+        }
+
+        return element
+    }
+
+    /**
+     * Checks if the element will be closed by a later closing tag (for example, it can have children).
+     * @param {HtmlElement} element
+     * @param {boolean} isExplicitSelfClosing
+     * @returns {boolean}
+     */
+    #expectsClosingTag(element, isExplicitSelfClosing) {
+        const isVoidTag = this.#voidTags.includes(element.tagName)
+        return !isExplicitSelfClosing && !isVoidTag
+    }
+
+    /**
+     * Reads attributes like id="test" class="btn" and saves them to the element.
      * @param {string} attrString 
      * @param {HtmlElement} element 
      */
